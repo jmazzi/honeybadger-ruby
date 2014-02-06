@@ -1,0 +1,110 @@
+require 'spec_helper'
+
+describe Honeybadger::Dependency do
+  let(:dependency) { Honeybadger::Dependency.new }
+  subject          { dependency }
+
+  before do
+    Honeybadger::Dependency.class_variable_set(:@@dependencies, [])
+    Honeybadger::Dependency.stub(:dependencies).and_return do
+      Honeybadger::Dependency.class_variable_get(:@@dependencies)
+    end
+
+    dependency.stub(:requirements) { subject.instance_variable_get(:@requirements) }
+    dependency.stub(:injections) { subject.instance_variable_get(:@injections) }
+  end
+
+  describe ".register" do
+    it "returns a new dependency" do
+      instance = double()
+      Honeybadger::Dependency.stub(:new).and_return(instance)
+      expect(Honeybadger::Dependency.register {}).to eq [instance]
+    end
+
+    it "registers a new dependency" do
+      expect { Honeybadger::Dependency.register {} }.to change(described_class, :dependencies).from([]).to([kind_of(Honeybadger::Dependency)])
+    end
+  end
+
+  describe ".inject!" do
+    it "injects all satisfied dependencies" do
+      Honeybadger::Dependency.class_variable_set(:@@dependencies, [mock_dependency, mock_dependency])
+      Honeybadger::Dependency.inject!
+    end
+
+    it "skips all unsatisfied dependencies" do
+      Honeybadger::Dependency.class_variable_set(:@@dependencies, [mock_dependency(false), mock_dependency(false)])
+      Honeybadger::Dependency.inject!
+    end
+  end
+
+  describe "#requirement" do
+    let(:block) { Proc.new {} }
+
+    it "returns and Array of requirements" do
+      expect(subject.requirement(&block)).to eq [block]
+    end
+
+    it "registers a new requirement" do
+      expect { subject.requirement(&block) }.to change(subject, :requirements).from([]).to([block])
+    end
+  end
+
+  describe "#injection" do
+    let(:block) { Proc.new {} }
+
+    it "returns an Array of injections" do
+      expect(subject.injection(&block)).to eq [block]
+    end
+
+    it "registers a new injection" do
+      expect { subject.injection(&block) }.to change(subject, :injections).from([]).to([block])
+    end
+  end
+
+  describe "#ok?" do
+    subject { dependency.ok? }
+
+    context "all requirements are met" do
+      before do
+        3.times { dependency.requirement { true } }
+      end
+
+      it { should be_true }
+    end
+
+    context "some requirements fail" do
+      before do
+        3.times { dependency.requirement { true } }
+        dependency.requirement { false }
+      end
+
+      it { should be_false }
+    end
+  end
+
+  describe "#inject!" do
+    context "when never injectd" do
+      it "calls injections" do
+        dependency.instance_variable_set(:@injections, [mock_injection, mock_injection])
+        dependency.inject!
+      end
+    end
+
+    context "when already injectd" do
+      it "does not call injections" do
+        dependency.inject!
+        dependency.instance_variable_set(:@injections, [mock_injection(false), mock_injection(false)])
+        dependency.inject!
+      end
+    end
+  end
+
+  def mock_dependency(ok = true)
+    double(ok?: ok).tap { |d| d.send(ok ? :should_receive : :should_not_receive, :inject!) }
+  end
+
+  def mock_injection(positive = true)
+    double().tap { |d| d.send(positive ? :should_receive : :should_not_receive, :call) }
+  end
+end
