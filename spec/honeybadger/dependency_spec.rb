@@ -4,15 +4,7 @@ describe Honeybadger::Dependency do
   let(:dependency) { Honeybadger::Dependency.new }
   subject          { dependency }
 
-  before do
-    Honeybadger::Dependency.class_variable_set(:@@dependencies, [])
-    Honeybadger::Dependency.stub(:dependencies).and_return do
-      Honeybadger::Dependency.class_variable_get(:@@dependencies)
-    end
-
-    dependency.stub(:requirements) { subject.instance_variable_get(:@requirements) }
-    dependency.stub(:injections) { subject.instance_variable_get(:@injections) }
-  end
+  before { Honeybadger::Dependency.dependencies.clear }
 
   describe ".register" do
     it "returns a new dependency" do
@@ -28,12 +20,12 @@ describe Honeybadger::Dependency do
 
   describe ".inject!" do
     it "injects all satisfied dependencies" do
-      Honeybadger::Dependency.class_variable_set(:@@dependencies, [mock_dependency, mock_dependency])
+      Honeybadger::Dependency.dependencies.replace([mock_dependency, mock_dependency])
       Honeybadger::Dependency.inject!
     end
 
     it "skips all unsatisfied dependencies" do
-      Honeybadger::Dependency.class_variable_set(:@@dependencies, [mock_dependency(false), mock_dependency(false)])
+      Honeybadger::Dependency.dependencies.replace([mock_dependency(false), mock_dependency(false)])
       Honeybadger::Dependency.inject!
     end
   end
@@ -65,12 +57,20 @@ describe Honeybadger::Dependency do
   describe "#ok?" do
     subject { dependency.ok? }
 
+    context "when not injected yet" do
+      it { should be_true }
+    end
+
+    context "when already injected" do
+      before { dependency.inject! }
+
+      it { should be_false }
+    end
+
     context "all requirements are met" do
       before do
         3.times { dependency.requirement { true } }
       end
-
-      it { should be_true }
     end
 
     context "some requirements fail" do
@@ -84,24 +84,14 @@ describe Honeybadger::Dependency do
   end
 
   describe "#inject!" do
-    context "when never injectd" do
-      it "calls injections" do
-        dependency.instance_variable_set(:@injections, [mock_injection, mock_injection])
-        dependency.inject!
-      end
-    end
-
-    context "when already injectd" do
-      it "does not call injections" do
-        dependency.inject!
-        dependency.instance_variable_set(:@injections, [mock_injection(false), mock_injection(false)])
-        dependency.inject!
-      end
+    it "calls injections" do
+      dependency.injections.replace([mock_injection, mock_injection])
+      dependency.inject!
     end
   end
 
   def mock_dependency(ok = true)
-    double(ok?: ok).tap { |d| d.send(ok ? :should_receive : :should_not_receive, :inject!) }
+    double(:ok? => ok).tap { |d| d.send(ok ? :should_receive : :should_not_receive, :inject!) }
   end
 
   def mock_injection(positive = true)
