@@ -4,7 +4,7 @@ describe Honeybadger::Dependency do
   let(:dependency) { Honeybadger::Dependency.new }
   subject          { dependency }
 
-  before { Honeybadger::Dependency.stub(:dependencies).and_return([]) }
+  before { Honeybadger::Dependency.stub(:instances).and_return([]) }
 
   describe ".register" do
     it "returns a new dependency" do
@@ -14,18 +14,18 @@ describe Honeybadger::Dependency do
     end
 
     it "registers a new dependency" do
-      expect { Honeybadger::Dependency.register {} }.to change(described_class, :dependencies).from([]).to([kind_of(Honeybadger::Dependency)])
+      expect { Honeybadger::Dependency.register {} }.to change(described_class, :instances).from([]).to([kind_of(Honeybadger::Dependency)])
     end
   end
 
   describe ".inject!" do
-    it "injects all satisfied dependencies" do
-      Honeybadger::Dependency.dependencies.replace([mock_dependency, mock_dependency])
+    it "injects all satisfied instances" do
+      Honeybadger::Dependency.instances.replace([mock_dependency, mock_dependency])
       Honeybadger::Dependency.inject!
     end
 
-    it "skips all unsatisfied dependencies" do
-      Honeybadger::Dependency.dependencies.replace([mock_dependency(false), mock_dependency(false)])
+    it "skips all unsatisfied instances" do
+      Honeybadger::Dependency.instances.replace([mock_dependency(false), mock_dependency(false)])
       Honeybadger::Dependency.inject!
     end
   end

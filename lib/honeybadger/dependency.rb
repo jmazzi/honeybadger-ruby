@@ -1,24 +1,24 @@
 module Honeybadger
   class Dependency
     class << self
-      @@dependencies = []
+      @@instances = []
 
-      def dependencies
-        @@dependencies
+      def instances
+        @@instances
       end
 
       def register
-        dependencies << new.tap { |d| d.instance_eval(&Proc.new) }
+        instances << new.tap { |d| d.instance_eval(&Proc.new) }
       end
 
       def inject!
-        dependencies.each do |dependency|
+        instances.each do |dependency|
           dependency.inject! if dependency.ok?
         end
       end
 
       def reset!
-        dependencies.each(&:reset!)
+        instances.each(&:reset!)
       end
     end
 
