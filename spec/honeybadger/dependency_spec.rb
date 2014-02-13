@@ -4,7 +4,7 @@ describe Honeybadger::Dependency do
   let(:dependency) { Honeybadger::Dependency.new }
   subject          { dependency }
 
-  before { Honeybadger::Dependency.dependencies.clear }
+  before { Honeybadger::Dependency.stub(:dependencies).and_return([]) }
 
   describe ".register" do
     it "returns a new dependency" do

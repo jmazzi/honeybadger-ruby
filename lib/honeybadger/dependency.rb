@@ -8,13 +8,17 @@ module Honeybadger
       end
 
       def register
-        @@dependencies << new.tap { |d| d.instance_eval(&Proc.new) }
+        dependencies << new.tap { |d| d.instance_eval(&Proc.new) }
       end
 
       def inject!
-        @@dependencies.each do |dependency|
+        dependencies.each do |dependency|
           dependency.inject! if dependency.ok?
         end
+      end
+
+      def reset!
+        dependencies.each(&:reset!)
       end
     end
 
@@ -46,6 +50,10 @@ module Honeybadger
       false
     ensure
       @injected = true
+    end
+
+    def reset!
+      @injected = false
     end
 
     attr_reader :requirements, :injections
