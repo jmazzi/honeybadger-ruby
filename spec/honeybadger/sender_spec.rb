@@ -108,6 +108,15 @@ describe Honeybadger::Sender do
         sender.send_to_honeybadger("stuff")
       end
 
+      it "should log the exception" do
+        notice  = Honeybadger::Notice.new(:exception => Exception.new("bad things"))
+        sender  = build_sender
+        sender.should_receive(:setup_http_connection).and_raise(RuntimeError)
+
+        sender.should_receive(:log).with(:error, /bad things/)
+        sender.send_to_honeybadger(notice)
+      end
+
       it "returns nil no matter what" do
         sender  = build_sender
         sender.should_receive(:setup_http_connection).and_raise(LocalJumpError)

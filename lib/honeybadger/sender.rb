@@ -55,7 +55,7 @@ module Honeybadger
         nil
       end
     rescue => e
-      log(:error, "[Honeybadger::Sender#send_to_honeybadger] Error: #{e.class} - #{e.message}\nBacktrace:\n#{e.backtrace.join("\n\t")}")
+      log(:error, "[Honeybadger::Sender#send_to_honeybadger] Error: #{e.class} - #{e.message}\nBacktrace:\n#{e.backtrace.join("\n\t")}\n#{exception_to_log_message(notice)}")
       nil
     end
 
@@ -158,6 +158,14 @@ module Honeybadger
     rescue => e
       log(:error, "[Honeybadger::Sender#setup_http_connection] Failure initializing the HTTP connection.\nError: #{e.class} - #{e.message}\nBacktrace:\n#{e.backtrace.join("\n\t")}")
       raise e
+    end
+
+    def exception_to_log_message(notice)
+      if notice.respond_to?(:exception) && notice.respond_to?(:backtrace)
+        "\n#{notice.error_class} - #{notice.error_message}\n#{notice.backtrace}"
+      else
+        "Exception: #{notice}"
+      end
     end
   end
 end
